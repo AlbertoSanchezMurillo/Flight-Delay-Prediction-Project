@@ -13,6 +13,8 @@ Este proyecto se enfoca en la predicción de retrasos de vuelos utilizando una i
 
     MongoDB: Base de datos NoSQL que almacena datos sobre vuelos y las predicciones de retrasos.
 
+    Apache NiFi: Herramienta de integración y automatización de flujo de datos que facilita la ingesta y procesamiento de datos.
+
     Hadoop: Sistema de almacenamiento distribuido para gestionar grandes volúmenes de datos.
 
     Docker: Plataforma para contenerizar los servicios y asegurar que el entorno de ejecución sea consistente en todos los sistemas.
@@ -70,7 +72,18 @@ La arquitectura del proyecto está definida en un docker-compose.yml, que define
     
     Propósito: Almacena grandes volúmenes de datos procesados en HDFS (Hadoop Distributed File System).
 
-7. MLflow
+7. Apache Nifi
+   Imagen: apache/nifi:1.24.0
+
+   Propósito: Apache NiFi facilita el flujo de datos entre sistemas, realizando tareas de ingesta, transformación y envío de datos. En este proyecto, se utiliza para recibir y procesar datos desde Kafka y enviarlos a las bases de datos o sistemas de almacenamiento pertinentes (por ejemplo, MongoDB o HDFS).
+
+   Puertos: 8080:8080.
+
+   Volúmenes: ./nifi_output:/output.
+
+   Dependencias: Depende de Kafka para recibir los datos en tiempo real.
+
+8. MLflow
     
     Imagen: ghcr.io/mlflow/mlflow:v2.0.1
     
@@ -98,14 +111,6 @@ val df = spark
 3. Dockerfile.airflow
 
 Este archivo personaliza la imagen de Docker para Apache Airflow, donde se instalan las dependencias necesarias, como MLflow y Kafka. Es útil para la orquestación de tareas, aunque la implementación específica de Airflow aún está pendiente.
-
-FROM apache/airflow:2.0.2
-
-USER root
-
-RUN pip install mlflow kafka-python pymongo
-
-USER airflow
 
 ## Pasos para Ejecutar el Proyecto
 1. Clonar el repositorio y construir los contenedores
