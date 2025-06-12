@@ -115,7 +115,7 @@ Este archivo personaliza la imagen de Docker para Apache Airflow, donde se insta
 ## Pasos para Ejecutar el Proyecto
 1. Clonar el repositorio y construir los contenedores
 Clona este repositorio y navega hasta la carpeta raíz del proyecto. Luego, construye los contenedores con el siguiente comando:
-docker-compose up --build
+    docker-compose up --build
 
 2. Cargar los datos en MongoDB
 Los datos de vuelos se importan automáticamente desde el contenedor mongo-seed. Asegúrate de que mongo y mongo-seed estén ejecutándose correctamente.
