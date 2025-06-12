@@ -21,39 +21,61 @@ Este proyecto se enfoca en la predicción de retrasos de vuelos utilizando una i
 
 La arquitectura del proyecto está definida en un docker-compose.yml, que define los contenedores necesarios para ejecutar los distintos servicios. A continuación se describe cada servicio:
 1. MongoDB
+   
     Imagen: mongo:7.0.17
+   
     Propósito: Almacena los datos relacionados con los vuelos y las predicciones de retrasos.
+   
     Volumen: Utiliza un volumen persistente ./data_mongo:/data/db.
 
 2. Kafka
+   
     Imagen: bitnami/kafka:3.9
+   
     Propósito: Transmite los datos de vuelos en tiempo real.
+   
     Puertos: 9092:9092 y 9094:9094.
+   
     Configuración: Utiliza una configuración básica para crear y gestionar tópicos en Kafka.
 
 3. Spark Master y Spark Workers
+
     Imagen: bde2020/spark-master:3.2.1-hadoop3.2
+   
     Propósito: Realiza el procesamiento y entrenamiento del modelo de machine learning sobre los datos de vuelos.
+   
     Puertos: 7077:7077 para el master y 8088:8080 para la interfaz web.
+   
     Dependencias: Los workers (spark-worker-1 y spark-worker-2) se conectan al master para distribuir el procesamiento.
 
 4. FlaskApp
+   
     Imagen: Personalizada desde el Dockerfile en resources/web/Dockerfile.
+   
     Propósito: Proporciona una interfaz para interactuar con el sistema de predicción de retrasos de vuelos.
+   
     Puertos: 5010:5010.
 
 5. Dataloader
+    
     Imagen: python:3.8-slim
+   
     Propósito: Carga y prepara los datos necesarios para el entrenamiento y la predicción.
+   
     Comando: Ejecuta un script que descarga y prepara los datos.
 
 6. Hadoop (HDFS)
+    
     Imágenes: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8 y bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    
     Propósito: Almacena grandes volúmenes de datos procesados en HDFS (Hadoop Distributed File System).
 
 7. MLflow
+    
     Imagen: ghcr.io/mlflow/mlflow:v2.0.1
+    
     Propósito: Gestiona los modelos de machine learning entrenados y permite su seguimiento y almacenamiento.
+    
     Puertos: 5000:5000.
    
 ## Archivos Clave
