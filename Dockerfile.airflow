@@ -1,0 +1,15 @@
+# Dockerfile.airflow
+
+FROM apache/airflow:2.4.1
+
+# Usamos el usuario airflow para evitar permisos innecesarios de root
+USER airflow
+
+# Instalar las dependencias necesarias para tu DAG
+RUN pip install --no-cache-dir \
+    mlflow==1.29.0 \
+    iso8601 \
+    pyspark \
+    findspark \
+    scikit-learn
+

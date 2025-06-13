@@ -1,0 +1,25 @@
+# Usar la imagen base de Python 3.7
+FROM python:3.7
+
+# Establecer el directorio de trabajo
+WORKDIR /app
+
+# Copiar el archivo requirements.txt al contenedor
+COPY requirements.txt .
+
+# Instalar las dependencias desde requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copiar todo el contenido del directorio actual al contenedor
+COPY . .
+
+# Exponer el puerto 600 para el servidor MLflow
+EXPOSE 600
+
+# Descargar el script wait-for-it.sh desde GitHub y hacerlo ejecutable
+RUN curl -sSL https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh -o /wait-for-it.sh && \
+    chmod +x /wait-for-it.sh
+
+# Establecer el comando para ejecutar MLflow en el contenedor
+CMD ["mlflow", "server", "--host", "0.0.0.0", "--port", "600"]
+
