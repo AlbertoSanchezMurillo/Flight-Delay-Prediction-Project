@@ -204,3 +204,22 @@ Run the DAG named train_with_mlflow_and_spark to start the model training proces
 You will se something like this:
 
 ![Dag Running](images/Airflow.jpeg)
+
+
+## Known Issues
+
+### 1. Hadoop HDFS Write Error
+**Issue:**
+During the prediction process, you might notice that only the first prediction is saved correctly to HDFS, while subsequent predictions do not appear in the HDFS directory.
+
+**Cause:**  
+This behavior is often due to improper checkpointing or locking issues in the Spark Structured Streaming job writing to HDFS. The streaming write may not be correctly committing offsets or the checkpoint directory is not set up with the right permissions.
+
+### 2. Airflow and MLflow Integration Issue
+
+**Issue:**  
+When saving the trained model via Airflow to MLflow, Airflow does not properly wait for the PostgreSQL database to be fully ready before starting, causing failures in database connections and preventing the model saving process.
+
+**Cause:**  
+Airflow may attempt to initialize or run tasks before the PostgreSQL service is fully operational, leading to errors like "database not ready" or connection refused.
+
