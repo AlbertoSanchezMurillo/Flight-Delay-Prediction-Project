@@ -1,95 +1,142 @@
-# Proyecto de Predicción de Retrasos de Vuelos
-## Descripción
+# Flight Delay Prediction Project
+## Description
+This project focuses on predicting flight delays using a distributed infrastructure based on different technologies. The system is designed to process large volumes of flight data and perform real-time predictions using a Random Forest model. Below is a description of the defined services in the docker-compose.yml file along with the Docker images used
 
-Este proyecto se enfoca en la predicción de retrasos de vuelos utilizando una infraestructura distribuida basada en tecnologías como Apache Spark, MLflow, Hadoop, Kafka, MongoDB y Docker. El sistema está diseñado para procesar grandes volúmenes de datos de vuelos y realizar predicciones en tiempo real a través de un modelo de Random Forest.
+## Project Architecture
 
-## Tecnologías Utilizadas
+### 1. MongoDB
+Image: mongo:7.0.17
 
-    Apache Spark: Framework para el procesamiento de grandes volúmenes de datos en un entorno distribuido.
+Description: NoSQL database used for storing project data.
 
-    MLflow: Plataforma de gestión de modelos de machine learning, que permite el seguimiento, almacenamiento y reutilización de los modelos entrenados.
+Volume: ./data_mongo:/data/db for data persistence.
 
-    Kafka: Sistema de mensajería distribuido utilizado para enviar y recibir datos de vuelos en tiempo real.
+Port: 27017
 
-    MongoDB: Base de datos NoSQL que almacena datos sobre vuelos y las predicciones de retrasos.
+2. Mongo Seed
+Image: mongo:7.0.17
 
-    Apache NiFi: Herramienta de integración y automatización de flujo de datos que facilita la ingesta y procesamiento de datos.
+Description: Auxiliary container that imports initial data (origin_dest_distances) into MongoDB.
 
-    Hadoop: Sistema de almacenamiento distribuido para gestionar grandes volúmenes de datos.
+Depends on: mongo
 
-    Docker: Plataforma para contenerizar los servicios y asegurar que el entorno de ejecución sea consistente en todos los sistemas.
+Command: Runs mongoimport after a delay to load the data.
 
-## Arquitectura del Proyecto
+3. Flask App
+Image: Built from Dockerfile located at resources/web/Dockerfile.
 
-La arquitectura del proyecto está definida en un docker-compose.yml, que define los contenedores necesarios para ejecutar los distintos servicios. A continuación se describe cada servicio:
-1. MongoDB
-   
-    Imagen: mongo:7.0.17
-   
-    Propósito: Almacena los datos relacionados con los vuelos y las predicciones de retrasos.
-   
-    Volumen: Utiliza un volumen persistente ./data_mongo:/data/db.
+Description: Web application to interact with the system.
 
-2. Kafka
-   
-    Imagen: bitnami/kafka:3.9
-   
-    Propósito: Transmite los datos de vuelos en tiempo real.
-   
-    Puertos: 9092:9092 y 9094:9094.
-   
-    Configuración: Utiliza una configuración básica para crear y gestionar tópicos en Kafka.
+Port: 5010
 
-3. Spark Master y Spark Workers
+Depends on: mongo, mongo-seed, kafka
 
-    Imagen: bde2020/spark-master:3.2.1-hadoop3.2
-   
-    Propósito: Realiza el procesamiento y entrenamiento del modelo de machine learning sobre los datos de vuelos.
-   
-    Puertos: 7077:7077 para el master y 8088:8080 para la interfaz web.
-   
-    Dependencias: Los workers (spark-worker-1 y spark-worker-2) se conectan al master para distribuir el procesamiento.
+4. Kafka
+Image: bitnami/kafka:3.9
 
-4. FlaskApp
-   
-    Imagen: Personalizada desde el Dockerfile en resources/web/Dockerfile.
-   
-    Propósito: Proporciona una interfaz para interactuar con el sistema de predicción de retrasos de vuelos.
-   
-    Puertos: 5010:5010.
+Description: Distributed messaging system for real-time data streaming.
 
-5. Dataloader
-    
-    Imagen: python:3.8-slim
-   
-    Propósito: Carga y prepara los datos necesarios para el entrenamiento y la predicción.
-   
-    Comando: Ejecuta un script que descarga y prepara los datos.
+Volume: kafka_data:/bitnami/kafka for persistence.
 
-6. Hadoop (HDFS)
-    
-    Imágenes: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8 y bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
-    
-    Propósito: Almacena grandes volúmenes de datos procesados en HDFS (Hadoop Distributed File System).
+Ports: 9092, 9094
 
-7. Apache Nifi
-   Imagen: apache/nifi:1.24.0
+5. Spark Master
+Image: bde2020/spark-master:3.2.1-hadoop3.2
 
-   Propósito: Apache NiFi facilita el flujo de datos entre sistemas, realizando tareas de ingesta, transformación y envío de datos. En este proyecto, se utiliza para recibir y procesar datos desde Kafka y enviarlos a las bases de datos o sistemas de almacenamiento pertinentes (por ejemplo, MongoDB o HDFS).
+Description: Apache Spark master node for cluster management.
 
-   Puertos: 8080:8080.
+Volume: ./models:/models/models (for persistent models).
 
-   Volúmenes: ./nifi_output:/output.
+Ports: 7077, 8088
 
-   Dependencias: Depende de Kafka para recibir los datos en tiempo real.
+6. Spark Worker 1 and 2
+Image: bde2020/spark-worker:3.2.1-hadoop3.2
 
-8. MLflow
-    
-    Imagen: ghcr.io/mlflow/mlflow:v2.0.1
-    
-    Propósito: Gestiona los modelos de machine learning entrenados y permite su seguimiento y almacenamiento.
-    
-    Puertos: 5000:5000.
+Description: Worker nodes for distributed Spark processing.
+
+Volume: ./models:/models/models.
+
+Ports: 8086 (worker-1), 8087 (worker-2)
+
+7. Spark Submit
+Image: bde2020/spark-submit:3.2.1-hadoop3.2
+
+Description: Container that runs Spark applications for batch/stream processing.
+
+Volumes: ./flight_prediction:/app, ./models:/models/models
+
+Depends on: Spark master and workers, Kafka, MongoDB
+
+8. Dataloader
+Image: python:3.8-slim
+
+Description: Service to download and prepare initial data.
+
+Command: Updates packages, installs curl, runs data download script.
+
+Depends on: mongo
+
+9. NiFi
+Image: apache/nifi:1.24.0
+
+Description: Platform for automating and managing data flows.
+
+Port: 8085 (mapped to internal 8080)
+
+Volume: ./nifi_output:/output
+
+Depends on: Kafka
+
+10. Hadoop Namenode
+Image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+
+Description: Master node of the Hadoop Distributed File System (HDFS).
+
+Volume: ./volumes/namenode:/hadoop/dfs/name
+
+Ports: 50070, 9870
+
+11. Hadoop Datanode
+Image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+
+Description: Data node in the HDFS cluster.
+
+Volume: ./volumes/datanode:/hadoop/dfs/data
+
+Ports: 50075, 9864
+
+Depends on: hadoop-namenode
+
+12. Airflow
+Image: Built from Dockerfile.airflow
+
+Description: Workflow orchestration and pipeline management platform.
+
+Port: 8089 (mapped to internal 8080)
+
+Volumes: Contains DAGs, resources, Python packages, and MLflow experiments.
+
+Depends on: postgres
+
+13. Postgres
+Image: postgres:13
+
+Description: Relational database used by Airflow.
+
+Volume: postgres_data:/var/lib/postgresql/data
+
+Port: 5432
+
+14. MLflow
+Image: ghcr.io/mlflow/mlflow:v2.0.1
+
+Description: Platform for managing machine learning lifecycle.
+
+Port: 5000
+
+Volume: ./mlflow_new:/mlflow_new
+
+Command: MLflow server with artifacts stored in ./mlflow_new/artifacts
    
 ## Archivos Clave
 1. docker-compose.yml
