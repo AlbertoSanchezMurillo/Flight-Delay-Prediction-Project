@@ -4,139 +4,95 @@ This project focuses on predicting flight delays using a distributed infrastruct
 
 ## Project Architecture
 
-### 1. MongoDB
-Image: mongo:7.0.17
+ **1. MongoDB:**   NoSQL database used for storing project data.
 
-Description: NoSQL database used for storing project data.
+- Image: mongo:7.0.17
 
-Volume: ./data_mongo:/data/db for data persistence.
+- Volume: ./data_mongo:/data/db for data persistence.
 
-Port: 27017
+- Port: 27017
 
-2. Mongo Seed
-Image: mongo:7.0.17
+**2. Mongo Seed:** Auxiliary container that imports initial data (origin_dest_distances) into MongoDB.
 
-Description: Auxiliary container that imports initial data (origin_dest_distances) into MongoDB.
+- Image: mongo:7.0.17
+- Depends on: mongo
+- Command: Runs mongoimport after a delay to load the data.
 
-Depends on: mongo
+**3. Flask App:** Web application to interact with the system.
 
-Command: Runs mongoimport after a delay to load the data.
+- Image: Built from Dockerfile located at resources/web/Dockerfile.
+- Port: 5010
+- Depends on: mongo, mongo-seed, kafka
 
-3. Flask App
-Image: Built from Dockerfile located at resources/web/Dockerfile.
+**4. Kafka:** Distributed messaging system for real-time data streaming.
 
-Description: Web application to interact with the system.
+- Image: bitnami/kafka:3.9
+- Volume: kafka_data:/bitnami/kafka for persistence.
+- Ports: 9092, 9094
 
-Port: 5010
+**5. Spark Master:** Apache Spark master node for cluster management.
 
-Depends on: mongo, mongo-seed, kafka
+- Image: bde2020/spark-master:3.2.1-hadoop3.2
+- Volume: ./models:/models/models (for persistent models).
+- Ports: 7077, 8088
 
-4. Kafka
-Image: bitnami/kafka:3.9
+**6. Spark Worker 1 and 2:** Worker nodes for distributed Spark processing.
 
-Description: Distributed messaging system for real-time data streaming.
+- Image: bde2020/spark-worker:3.2.1-hadoop3.2
+- Volume: ./models:/models/models.
+- Ports: 8086 (worker-1), 8087 (worker-2)
 
-Volume: kafka_data:/bitnami/kafka for persistence.
+**7. Spark Submit:** Container that runs Spark applications for batch/stream processing.
 
-Ports: 9092, 9094
+- Image: bde2020/spark-submit:3.2.1-hadoop3.2
+- Volumes: ./flight_prediction:/app, ./models:/models/models
+- Depends on: Spark master and workers, Kafka, MongoDB
 
-5. Spark Master
-Image: bde2020/spark-master:3.2.1-hadoop3.2
+**8. Dataloader:** Service to download and prepare initial data.
 
-Description: Apache Spark master node for cluster management.
+- Image: python:3.8-slim
+- Command: Updates packages, installs curl, runs data download script.
+- Depends on: mongo
 
-Volume: ./models:/models/models (for persistent models).
+**9. NiFi:** Platform for automating and managing data flows.
 
-Ports: 7077, 8088
+- Image: apache/nifi:1.24.0
+- Port: 8085 (mapped to internal 8080)
+- Volume: ./nifi_output:/output
+- Depends on: Kafka
 
-6. Spark Worker 1 and 2
-Image: bde2020/spark-worker:3.2.1-hadoop3.2
+**10. Hadoop Namenode:** Master node of the Hadoop Distributed File System (HDFS).
 
-Description: Worker nodes for distributed Spark processing.
+- Image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+- Volume: ./volumes/namenode:/hadoop/dfs/name
+- Ports: 50070, 9870
 
-Volume: ./models:/models/models.
+**11. Hadoop Datanode:** Data node in the HDFS cluster.
 
-Ports: 8086 (worker-1), 8087 (worker-2)
+- Image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+- Volume: ./volumes/datanode:/hadoop/dfs/data
+- Ports: 50075, 9864
+- Depends on: hadoop-namenode
 
-7. Spark Submit
-Image: bde2020/spark-submit:3.2.1-hadoop3.2
+**12. Airflow:** Workflow orchestration and pipeline management platform.
 
-Description: Container that runs Spark applications for batch/stream processing.
+- Image: Built from Dockerfile.airflow
+- Port: 8089 (mapped to internal 8080)
+- Volumes: Contains DAGs, resources, Python packages, and MLflow experiments.
+- Depends on: postgres
 
-Volumes: ./flight_prediction:/app, ./models:/models/models
+**13. Postgres:** Relational database used by Airflow.
 
-Depends on: Spark master and workers, Kafka, MongoDB
+- Image: postgres:13
+- Volume: postgres_data:/var/lib/postgresql/data
+- Port: 5432
 
-8. Dataloader
-Image: python:3.8-slim
+**14. MLflow:** Platform for managing machine learning lifecycle.
 
-Description: Service to download and prepare initial data.
-
-Command: Updates packages, installs curl, runs data download script.
-
-Depends on: mongo
-
-9. NiFi
-Image: apache/nifi:1.24.0
-
-Description: Platform for automating and managing data flows.
-
-Port: 8085 (mapped to internal 8080)
-
-Volume: ./nifi_output:/output
-
-Depends on: Kafka
-
-10. Hadoop Namenode
-Image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
-
-Description: Master node of the Hadoop Distributed File System (HDFS).
-
-Volume: ./volumes/namenode:/hadoop/dfs/name
-
-Ports: 50070, 9870
-
-11. Hadoop Datanode
-Image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
-
-Description: Data node in the HDFS cluster.
-
-Volume: ./volumes/datanode:/hadoop/dfs/data
-
-Ports: 50075, 9864
-
-Depends on: hadoop-namenode
-
-12. Airflow
-Image: Built from Dockerfile.airflow
-
-Description: Workflow orchestration and pipeline management platform.
-
-Port: 8089 (mapped to internal 8080)
-
-Volumes: Contains DAGs, resources, Python packages, and MLflow experiments.
-
-Depends on: postgres
-
-13. Postgres
-Image: postgres:13
-
-Description: Relational database used by Airflow.
-
-Volume: postgres_data:/var/lib/postgresql/data
-
-Port: 5432
-
-14. MLflow
-Image: ghcr.io/mlflow/mlflow:v2.0.1
-
-Description: Platform for managing machine learning lifecycle.
-
-Port: 5000
-
-Volume: ./mlflow_new:/mlflow_new
-
-Command: MLflow server with artifacts stored in ./mlflow_new/artifacts
+- Image: ghcr.io/mlflow/mlflow:v2.0.1
+- Port: 5000
+- Volume: ./mlflow_new:/mlflow_new
+- Command: MLflow server with artifacts stored in ./mlflow_new/artifacts
    
 ## Archivos Clave
 1. docker-compose.yml
