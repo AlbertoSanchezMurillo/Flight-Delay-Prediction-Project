@@ -106,3 +106,108 @@ Run this command in your terminal:
 docker compose up --build
 ```
 ![Docker Compose up](images/Docker_Compose_up.png)
+
+
+### 2. Verify Running Containers
+
+To check that the containers have been created and are running correctly, run:
+
+```bash
+docker compose ps -a
+```
+You should see a list of your containers similar to this, confirming that the dockerization process is complete.
+
+
+### 3. Verify Component Functionality
+Make sure all components are working as expected.
+
+**Flask App**
+Open your browser and go to:
+
+```bash
+http://localhost:5010/flights/delays/predict_kafka
+```
+Here you can send prediction requests with the desired input values.
+
+**Spark**
+Access Spark UI at:
+```
+http://localhost:8088
+```
+Check that you have one master and two workers running. You should see something like this:
+![Docker Compose up](images/Spark_Master.png)
+
+**NiFi**
+You have a predefined NiFi flow in XML format inside the project folder.
+
+Go to:
+```bash
+http://localhost:8085/nifi/
+```
+Import the flow and test it by running some predictions.
+
+![Docker Compose up](images/Flujo_Nifi.png)
+
+To verify that predictions are saved correctly, enter the NiFi container:
+
+```bash
+docker exec -ti nifi bash
+```
+Navigate to the /output directory where you will find .txt files containing the predictions. To view a file's content, run:
+
+```bash
+cat <filename.txt>
+```
+You can also check the nifi_output folder on your host machine.
+
+**Kafka**
+To verify predictions are being written to Kafka, enter the Kafka container:
+
+```bash
+docker exec -ti kafka bash
+```
+Go to the bin directory, then list the topics with:
+
+```bash
+kafka-topics.sh --bootstrap-server localhost:9092 --list
+```
+To consume prediction messages, run:
+
+```bash
+kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic flight-delay-ml-response --from-beginning
+```
+You will see all previous and new predictions in real-time.
+
+**HDFS**
+Open the Hadoop File System UI at:
+```bash
+http://localhost:9870
+```
+Navigate to Utilities → Browse the file system.
+
+Go to /user/spark/predictions where the prediction results are stored.
+
+To view these predictions from the terminal, enter the namenode container:
+
+```bash
+docker exec -it hadoop-namenode bash
+```
+List prediction files with:
+
+```bash
+hdfs dfs -ls /user/spark/predictions
+```
+View the content of a specific prediction file using:
+
+```bash
+hdfs dfs -cat <path-to-prediction-file>
+```
+
+**Airflow**
+Access the Airflow web UI at:
+```bash
+http://localhost:8089
+```
+Login with username admin and password admin.
+
+Run the DAG named agile_data_science_batch_prediction_model_training to start the model training process. The DAG and training process should transition from running to success.
