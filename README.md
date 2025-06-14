@@ -105,4 +105,4 @@ Run this command in your terminal:
 ```bash
 docker compose up --build
 ```
-![Docker Compose up](images/Docker.png)
+![Docker Compose up](images/Docker Compose up.png)
