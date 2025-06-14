@@ -199,8 +199,8 @@ http://localhost:8089
 ```
 Login with username admin and password admin.
 
-Run the DAG named agile_data_science_batch_prediction_model_training to start the model training process. The DAG and training process should transition from running to success.
+Run the DAG named train_with_mlflow_and_spark to start the model training process. The DAG and training process should transition from running to success.
 
 You will se something like this:
 
-![Dag Running](images/Airflow.png)
+![Dag Running](images/Airflow.jpeg)
