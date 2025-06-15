@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert
+    kompose.version: 1.31.2 (a92241f79)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: nifi
+  name: nifi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: nifi
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert
+        kompose.version: 1.31.2 (a92241f79)
+      creationTimestamp: null
+      labels:
+        io.kompose.network/practica-creativa2-hdfs: "true"
+        io.kompose.service: nifi
+    spec:
+      containers:
+        - env:
+            - name: NIFI_WEB_HTTP_PORT
+              value: "8080"
+          image: apache/nifi:1.24.0
+          name: nifi
+          ports:
+            - containerPort: 8080
+              hostPort: 8085
+              protocol: TCP
+          resources: {}
+          volumeMounts:
+            - mountPath: /output
+              name: nifi-claim0
+      restartPolicy: Always
+      volumes:
+        - name: nifi-claim0
+          persistentVolumeClaim:
+            claimName: nifi-claim0
+status: {}

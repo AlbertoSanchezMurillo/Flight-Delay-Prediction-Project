@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert
+    kompose.version: 1.31.2 (a92241f79)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: spark-worker-2
+  name: spark-worker-2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: spark-worker-2
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert
+        kompose.version: 1.31.2 (a92241f79)
+      creationTimestamp: null
+      labels:
+        io.kompose.network/practica-creativa2-hdfs: "true"
+        io.kompose.service: spark-worker-2
+    spec:
+      containers:
+        - env:
+            - name: INIT_DAEMON_STEP
+              value: setup_spark
+            - name: SPARK_MASTER
+              value: spark://spark-master:7077
+          image: bde2020/spark-worker:3.2.1-hadoop3.2
+          name: spark-worker-2
+          ports:
+            - containerPort: 8081
+              hostPort: 8087
+              protocol: TCP
+          resources: {}
+          volumeMounts:
+            - mountPath: /models/models
+              name: spark-worker-2-claim0
+      restartPolicy: Always
+      volumes:
+        - name: spark-worker-2-claim0
+          persistentVolumeClaim:
+            claimName: spark-worker-2-claim0
+status: {}

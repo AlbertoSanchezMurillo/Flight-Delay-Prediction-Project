@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert
+    kompose.version: 1.31.2 (a92241f79)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: dataloader
+  name: dataloader
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: dataloader
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert
+        kompose.version: 1.31.2 (a92241f79)
+      creationTimestamp: null
+      labels:
+        io.kompose.network/practica-creativa2-hdfs: "true"
+        io.kompose.service: dataloader
+    spec:
+      containers:
+        - args:
+            - bash
+            - -c
+            - apt update && apt install -y curl && chmod +x resources/download_data.sh && ./resources/download_data.sh
+          image: python:3.8-slim
+          name: dataloader
+          resources: {}
+          volumeMounts:
+            - mountPath: /app
+              name: dataloader-claim0
+          workingDir: /app
+      restartPolicy: Always
+      volumes:
+        - name: dataloader-claim0
+          persistentVolumeClaim:
+            claimName: dataloader-claim0
+status: {}

@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert
+    kompose.version: 1.31.2 (a92241f79)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: hadoop-namenode
+  name: hadoop-namenode
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: hadoop-namenode
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert
+        kompose.version: 1.31.2 (a92241f79)
+      creationTimestamp: null
+      labels:
+        io.kompose.network/practica-creativa2-hdfs: "true"
+        io.kompose.service: hadoop-namenode
+    spec:
+      containers:
+        - env:
+            - name: CLUSTER_NAME
+              value: test
+            - name: CORE_CONF_hadoop_proxyuser_hue_groups
+              value: '*'
+            - name: CORE_CONF_hadoop_proxyuser_hue_hosts
+              value: '*'
+            - name: HDFS_CONF_dfs_permissions_enabled
+              value: "false"
+            - name: HDFS_CONF_dfs_webhdfs_enabled
+              value: "true"
+            - name: INIT_DAEMON_STEP
+              value: setup_hdfs
+          image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+          name: hadoop-namenode
+          ports:
+            - containerPort: 50070
+              hostPort: 50070
+              protocol: TCP
+            - containerPort: 9870
+              hostPort: 9870
+              protocol: TCP
+          resources: {}
+          volumeMounts:
+            - mountPath: /hadoop/dfs/name
+              name: hadoop-namenode-claim0
+      restartPolicy: Always
+      volumes:
+        - name: hadoop-namenode-claim0
+          persistentVolumeClaim:
+            claimName: hadoop-namenode-claim0
+status: {}

@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert
+    kompose.version: 1.31.2 (a92241f79)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: hadoop-datanode
+  name: hadoop-datanode
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: hadoop-datanode
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert
+        kompose.version: 1.31.2 (a92241f79)
+      creationTimestamp: null
+      labels:
+        io.kompose.network/practica-creativa2-hdfs: "true"
+        io.kompose.service: hadoop-datanode
+    spec:
+      containers:
+        - env:
+            - name: CORE_CONF_fs_defaultFS
+              value: hdfs://hadoop-namenode:8020
+            - name: HDFS_CONF_dfs_webhdfs_enabled
+              value: "true"
+          image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+          name: hadoop-datanode
+          ports:
+            - containerPort: 50075
+              hostPort: 50075
+              protocol: TCP
+            - containerPort: 9864
+              hostPort: 9864
+              protocol: TCP
+          resources: {}
+          volumeMounts:
+            - mountPath: /hadoop/dfs/data
+              name: hadoop-datanode-claim0
+      restartPolicy: Always
+      volumes:
+        - name: hadoop-datanode-claim0
+          persistentVolumeClaim:
+            claimName: hadoop-datanode-claim0
+status: {}

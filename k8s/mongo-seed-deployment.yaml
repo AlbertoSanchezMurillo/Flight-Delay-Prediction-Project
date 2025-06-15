@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert
+    kompose.version: 1.31.2 (a92241f79)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: mongo-seed
+  name: mongo-seed
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: mongo-seed
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert
+        kompose.version: 1.31.2 (a92241f79)
+      creationTimestamp: null
+      labels:
+        io.kompose.network/practica-creativa2-hdfs: "true"
+        io.kompose.service: mongo-seed
+    spec:
+      containers:
+        - args:
+            - bash
+            - -c
+            - ' sleep 5 && mongoimport --host mongo --port 27017  --db agile_data_science --collection origin_dest_distances  --file /data/origin_dest_distances.jsonl --type json'
+          image: mongo:7.0.17
+          name: mongo-seed
+          resources: {}
+          volumeMounts:
+            - mountPath: /data
+              name: mongo-seed-claim0
+      restartPolicy: Always
+      volumes:
+        - name: mongo-seed-claim0
+          persistentVolumeClaim:
+            claimName: mongo-seed-claim0
+status: {}
